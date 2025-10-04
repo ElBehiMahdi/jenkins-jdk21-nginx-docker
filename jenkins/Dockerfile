@@ -1,9 +1,15 @@
-FROM jenkins/jenkins:lts-jdk11
-MAINTAINER Michael J. Stealey <michael.j.stealey@gmail.com>
+FROM jenkins/jenkins:lts-jdk17
 
 # add ability to run docker from within jenkins (docker in docker)
 USER root
-RUN apt-get update && apt-get install -y lsb-release sudo
+
+# Install dependencies
+RUN apt-get update && apt-get install -y \
+    lsb-release \
+    sudo \
+    gosu
+
+# Install Docker CLI
 RUN curl -fsSLo /usr/share/keyrings/docker-archive-keyring.asc \
   https://download.docker.com/linux/debian/gpg
 RUN echo "deb [arch=$(dpkg --print-architecture) \
@@ -16,17 +22,15 @@ RUN apt-get update && apt-get install -y docker-ce-cli \
 
 USER jenkins
 
-# set default user attributes
+# Environment variables
 ENV JENKINS_UID=1000
 ENV JENKINS_GID=1000
 
-# add entrypoint script
+# Copy entrypoint script
 COPY docker-entrypoint.sh /docker-entrypoint.sh
 
-# normally user would be set to jenkins, but this is handled by the docker-entrypoint script on startup
-#USER jenkins
+
 USER root
 
-# bypass normal entrypoint and use custom one
-#ENTRYPOINT ["/sbin/tini", "--", "/usr/local/bin/jenkins.sh"]
-ENTRYPOINT ["/sbin/tini", "--", "/docker-entrypoint.sh"]
+# Use correct tini path
+ENTRYPOINT ["/usr/bin/tini", "--", "/docker-entrypoint.sh"]
